@@ -1,4 +1,5 @@
 #Amherst Price Patrol
+Amherst PricePatrol is a Gen-AI tool that compares grocery prices across stores like Walmart and Aldi. Using real-time data, it helps users find the best deals with fair, quantity-based comparisons.
 
 ##Prerequisites
 
