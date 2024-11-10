@@ -1,7 +1,8 @@
-#Amherst Price Patrol
+# Amherst Price Patrol
+
 Amherst PricePatrol is a Gen-AI tool that compares grocery prices across stores like Walmart and Aldi. Using real-time data, it helps users find the best deals with fair, quantity-based comparisons.
 
-##Prerequisites
+## Prerequisites
 
 To successfully run this application make sure you have these two api-keys
 
@@ -17,7 +18,7 @@ This one is free and honestly kinda cool!
 
 You can get the api-key from https://www.agentql.com/
 
-##To run the streamlit code
+## To run the streamlit code
 
 - First clone this repo
 '''
