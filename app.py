@@ -17,11 +17,10 @@ from streamlit_chat import message
 from langchain.callbacks import get_openai_callback
 
 
-# "with" notation
 def main():
     load_dotenv()
-    st.set_page_config(page_title="Chat With any files")
-    st.header("💬 Broke in Amherst")
+    st.set_page_config(page_title="PricePatrol")
+    st.header("💸 Amherst PricePatrol")
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
@@ -31,28 +30,38 @@ def main():
         st.session_state.processComplete = None
 
     with st.sidebar:
-        uploaded_files =  st.file_uploader("Upload your file",type=['pdf','docx','csv'],accept_multiple_files=True)
+        uploaded_files = st.file_uploader("Upload your file", type=['pdf', 'docx', 'csv'], accept_multiple_files=True)
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         process = st.button("Process")
+
+    # Hardcoded system prompt for prompt engineering
+    system_prompt = (
+        "You are an intelligent assistant helping users find the best grocery deals nearby in Amherst. "
+        "Your responses should be concise, friendly, and focused on saving money. If possible, provide specific suggestions or stores, "
+        "and avoid unnecessary details. Read the CSV file carefully, be accurate with product prices. Use only the shop names mentioned in each row."
+    )
+
+
     if process:
         if not openai_api_key:
             st.info("Please add your OpenAI API key to continue.")
             st.stop()
         files_text = get_files_text(uploaded_files)
-        # get text chunks
+        # Get text chunks
         text_chunks = get_text_chunks(files_text)
-        # create vetore stores
-        vetorestore = get_vectorstore(text_chunks)
-         # create conversation chain
-        st.session_state.conversation = get_conversation_chain(vetorestore,openai_api_key) #for openAI
-        # st.session_state.conversation = get_conversation_chain(vetorestore) #for huggingface
+        # Create vector store
+        vectorstore = get_vectorstore(text_chunks)
+        # Create conversation chain
+        st.session_state.conversation = get_conversation_chain(vectorstore, openai_api_key, text_chunks)  # For OpenAI
 
         st.session_state.processComplete = True
 
     if st.session_state.processComplete:
-        user_question = st.text_input("Ask a question about your files:")
+        user_question = st.text_input("Go ahead and clear your grocery dilemma:")
         if user_question:
-            handle_userinput(user_question)
+            # Prepend system prompt to the user's question
+            combined_prompt = f"{system_prompt}\n\n{user_question}"
+            handle_userinput(combined_prompt, user_question)
 
 
 def get_files_text(uploaded_files):
@@ -66,10 +75,7 @@ def get_files_text(uploaded_files):
             text += get_docx_text(uploaded_file)
         elif file_extension == ".csv":
             text += get_csv_text(uploaded_file)
-        else:
-            text += get_csv_text(uploaded_file)
     return text
-
 
 def get_pdf_text(pdf):
     pdf_reader = PdfReader(pdf)
@@ -80,65 +86,54 @@ def get_pdf_text(pdf):
 
 def get_docx_text(file):
     doc = docx.Document(file)
-    allText = []
-    for docpara in doc.paragraphs:
-        allText.append(docpara.text)
-    text = ' '.join(allText)
-    return text
+    allText = [docpara.text for docpara in doc.paragraphs]
+    return ' '.join(allText)
 
 def get_csv_text(file):
-    allText = []
-    # Decode file content to text and use it as a file-like object
     decoded_file = io.StringIO(file.getvalue().decode("utf-8"))
     reader = csv.reader(decoded_file)
-    for row in reader:
-        allText.append(', '.join(row))  # Join each row's elements with commas
-    text = '\n'.join(allText)  # Join all rows with newlines
-    return text
+    allText = [', '.join(row) for row in reader]
+    return '\n'.join(allText)
 
 def get_text_chunks(text):
-    # spilit ito chuncks
     text_splitter = CharacterTextSplitter(
         separator="\n",
         chunk_size=900,
         chunk_overlap=100,
         length_function=len
     )
-    chunks = text_splitter.split_text(text)
-    return chunks
-
+    return text_splitter.split_text(text)
 
 def get_vectorstore(text_chunks):
     embeddings = HuggingFaceEmbeddings()
-    # embeddings = HuggingFaceInstructEmbeddings(model_name="hkunlp/instructor-xl")
-    knowledge_base = FAISS.from_texts(text_chunks,embeddings)
+    knowledge_base = FAISS.from_texts(text_chunks, embeddings)
     return knowledge_base
 
-def get_conversation_chain(vetorestore,openai_api_key):
-    llm = ChatOpenAI(openai_api_key=openai_api_key, model_name = 'gpt-3.5-turbo',temperature=0)
-    memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-    conversation_chain = ConversationalRetrievalChain.from_llm(
-        llm=llm,
-        retriever=vetorestore.as_retriever(),
-        memory=memory
-    )
-    return conversation_chain
+def get_conversation_chain(vectorstore, openai_api_key, text_chunks):
 
+  system_prompt = "..."  # Your system prompt definition
 
-# def get_conversation_chain(vetorestore):
-#     llm = HuggingFaceHub(repo_id="google/flan-t5-large", model_kwargs={"temperature":5,
-#                                                       "max_length":64})
-#     memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
-#     conversation_chain = ConversationalRetrievalChain.from_llm(
-#         llm=llm,
-#         retriever=vetorestore.as_retriever(),
-#         memory=memory
-#     )
-#     return conversation_chain
+  # Prepend system prompt to each text chunk
+  text_chunks = [system_prompt + "\n" + chunk for chunk in text_chunks]
 
-def handle_userinput(user_question):
+  embeddings = HuggingFaceEmbeddings()
+  knowledge_base = FAISS.from_texts(text_chunks, embeddings)
+
+  llm = ChatOpenAI(model_name='gpt-3.5-turbo', temperature=0, openai_api_key = st.secrets["openai_api_key"])
+  memory = ConversationBufferMemory(memory_key='chat_history', return_messages=True)
+  conversation_chain = ConversationalRetrievalChain.from_llm(
+      llm=llm,
+      retriever=knowledge_base.as_retriever(),
+      memory=memory
+  )
+  return conversation_chain
+
+user_avatar = "🙍‍♀️"
+ai_avatar = "👩‍💻"
+
+def handle_userinput(combined_input, user_question):
     with get_openai_callback() as cb:
-        response = st.session_state.conversation({'question':user_question})
+        response = st.session_state.conversation({'question': user_question})
     st.session_state.chat_history = response['chat_history']
 
     # Layout of input/response containers
@@ -150,14 +145,6 @@ def handle_userinput(user_question):
                 message(messages.content, is_user=True, key=str(i))
             else:
                 message(messages.content, key=str(i))
-        st.write(f"Total Tokens: {cb.total_tokens}" f", Prompt Tokens: {cb.prompt_tokens}" f", Completion Tokens: {cb.completion_tokens}" f", Total Cost (USD): ${cb.total_cost}")
-
-                 # for i, message in enumerate(st.session_state.chat_history):
-    #     if i % 2 == 0:
-    #         st.write(user_template.replace("{{MSG}}",message.content),unsafe_allow_html=True)
-    #     else:
-    #         st.write(bot_template.replace("{{MSG}}",message.content),unsafe_allow_html=True)
-
 
 if __name__ == '__main__':
     main()
