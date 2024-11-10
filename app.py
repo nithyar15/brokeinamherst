@@ -3,7 +3,6 @@ import os
 import io
 import csv
 from PyPDF2 import PdfReader
-import docx
 from langchain.chat_models import ChatOpenAI
 from langchain.llms import OpenAI
 from dotenv import load_dotenv
@@ -30,7 +29,7 @@ def main():
         st.session_state.processComplete = None
 
     with st.sidebar:
-        uploaded_files = st.file_uploader("Upload your file", type=['pdf', 'docx', 'csv'], accept_multiple_files=True)
+        uploaded_files = st.file_uploader("Upload your file", type=['pdf', 'csv'], accept_multiple_files=True)
         openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
         process = st.button("Process")
 
@@ -71,8 +70,6 @@ def get_files_text(uploaded_files):
         file_extension = split_tup[1]
         if file_extension == ".pdf":
             text += get_pdf_text(uploaded_file)
-        elif file_extension == ".docx":
-            text += get_docx_text(uploaded_file)
         elif file_extension == ".csv":
             text += get_csv_text(uploaded_file)
     return text
@@ -83,11 +80,6 @@ def get_pdf_text(pdf):
     for page in pdf_reader.pages:
         text += page.extract_text()
     return text
-
-def get_docx_text(file):
-    doc = docx.Document(file)
-    allText = [docpara.text for docpara in doc.paragraphs]
-    return ' '.join(allText)
 
 def get_csv_text(file):
     decoded_file = io.StringIO(file.getvalue().decode("utf-8"))
