@@ -15,11 +15,28 @@ from langchain import HuggingFaceHub
 from streamlit_chat import message
 from langchain.callbacks import get_openai_callback
 
+#Loading the css file
+def load_css():
+    with open("static/styles.css", "r") as f:
+        css = f"<style>{f.read()}</style>"
+        st.markdown(css, unsafe_allow_html=True)
 
 def main():
     load_dotenv()
     st.set_page_config(page_title="PricePatrol")
-    st.header("💸 Amherst PricePatrol")
+    
+    logo_url = "app/static/logo.jpeg"
+    st.markdown(
+        f"""
+        <div style="display: flex; align-items: center;">
+            <img src="{logo_url}" width="40" style="margin-right: 10px;">
+            <div>
+                <h1 style="display: inline; margin: 0;">Amherst Price Patrol</h1>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
     if "conversation" not in st.session_state:
         st.session_state.conversation = None
@@ -54,6 +71,9 @@ def main():
         st.session_state.conversation = get_conversation_chain(vectorstore, openai_api_key, text_chunks)  # For OpenAI
 
         st.session_state.processComplete = True
+
+    #calling the style sheets
+    load_css()
 
     if st.session_state.processComplete:
         user_question = st.text_input("Go ahead and clear your grocery dilemma:")
@@ -134,9 +154,35 @@ def handle_userinput(combined_input, user_question):
     with response_container:
         for i, messages in enumerate(st.session_state.chat_history):
             if i % 2 == 0:
-                message(messages.content, is_user=True, key=str(i))
+                div = f"""
+                <div class="chat-row row-reverse">
+                    <img class="chat-icon" src="app/static/lovely.png"
+                        width=32 height=32>
+                    <div class="chat-bubble user-bubble">
+                        &#8203;{messages.content}
+                    </div>
+                </div>
+                """
+
+                st.markdown(div, unsafe_allow_html=True)
+
+                for _ in range(3):
+                    st.markdown("")
             else:
-                message(messages.content, key=str(i))
+                div = f"""
+                <div class="chat-row">
+                    <img class="chat-icon" src="app/static/grocery.png"
+                        width=32 height=32>
+                    <div class="chat-bubble ai-bubble">
+                        &#8203;{messages.content}
+                    </div>
+                </div>
+                    """
+
+                st.markdown(div, unsafe_allow_html=True)
+
+                for _ in range(3):
+                    st.markdown("")
 
 if __name__ == '__main__':
     main()

@@ -1,0 +1,44 @@
+.chat-row{
+    display: flex;
+    margin: 5px;
+    width: 100%;
+}
+
+.stApp {
+    background-color: #c9b0d3;
+}
+
+.row-reverse {
+    flex-direction: row-reverse;
+}
+
+.chat-bubble {
+    color: black;
+    border: 1px solid transparent;
+    padding: 5px 10px;
+    margin: 0px 7px;
+    max-width: 70%;
+}
+
+.ai-bubble {
+    background: #fdf0e7 ;
+    border-radius: 10px;
+}
+
+.user-bubble {
+    background: linear-gradient(135deg, rgb(135, 206, 235) 0%, rgb(174, 238, 174) 100%); 
+    color: darkslateblue;
+    border-radius: 20px;
+}
+
+#text_input_2{
+    background-color: #fdf0e7;
+    color: black;
+    padding: 20px;
+    border-radius: 10px;
+    caret-color: black;
+}
+
+p {
+    color: darkslateblue;
+}
