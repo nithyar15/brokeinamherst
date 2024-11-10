@@ -35,7 +35,7 @@ sudo pip install -r requirements.txt
 streamlit run app.py
 ```
 
--If prompted add your openAI api-key and you should be good to go
+- If prompted add your openAI api-key and you should be good to go
 
 ## To run the webscraping tool
 
